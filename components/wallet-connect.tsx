@@ -1,72 +1,55 @@
-"use client"
+// components/WalletConnect.tsx
+'use client'
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Wallet } from "lucide-react"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
+import { useEffect, useState } from 'react'
+import { Button } from './ui/button'
+import { connectMetaMask, isWalletConnected } from '../lib/wallet'
 
 interface WalletConnectProps {
-  onConnect: (address: string) => void
-  connected: boolean
-  address: string
+  onConnect?: (address: string) => void;
+  connected?: boolean;
+  address?: string;
 }
 
 export default function WalletConnect({ onConnect, connected, address }: WalletConnectProps) {
-  const [isOpen, setIsOpen] = useState(false)
+  const [isConnected, setIsConnected] = useState(connected || false)
+  const [walletAddress, setWalletAddress] = useState(address || '')
 
-  const handleConnect = (walletType: string) => {
-    // Simulate wallet connection
-    const mockAddress = "0x" + Math.random().toString(16).slice(2, 12) + "..."
-    onConnect(mockAddress)
-    setIsOpen(false)
-  }
+  useEffect(() => {
+    const checkConnection = async () => {
+      const connected = await isWalletConnected()
+      setIsConnected(connected)
+    }
+    checkConnection()
+  }, [])
 
-  if (connected) {
-    return (
-      <Button variant="outline" className="bg-white text-purple-700 border-purple-300 hover:bg-purple-50">
-        <Wallet className="h-4 w-4 mr-2" />
-        {address}
-      </Button>
-    )
+  const handleConnect = async () => {
+    try {
+      const { address } = await connectMetaMask()
+      setIsConnected(true)
+      setWalletAddress(address)
+      onConnect?.(address)
+    } catch (error) {
+      console.error('Failed to connect wallet:', error)
+    }
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button className="bg-white text-purple-700 hover:bg-purple-50">
-          <Wallet className="h-4 w-4 mr-2" />
+    <div className="flex items-center gap-2">
+      {!isConnected ? (
+        <Button onClick={handleConnect} variant="secondary">
           Connect Wallet
         </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Connect your wallet</DialogTitle>
-          <DialogDescription>Connect your crypto wallet to access your CryptoPet NFTs</DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <Button onClick={() => handleConnect("metamask")} className="flex justify-between items-center w-full">
-            <span>MetaMask</span>
-            <img src="/placeholder.svg?height=24&width=24" alt="MetaMask" className="h-6 w-6" />
+      ) : (
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" className="text-sm">
+            Connected
           </Button>
-
-          <Button onClick={() => handleConnect("walletconnect")} className="flex justify-between items-center w-full">
-            <span>WalletConnect</span>
-            <img src="/placeholder.svg?height=24&width=24" alt="WalletConnect" className="h-6 w-6" />
-          </Button>
-
-          <Button onClick={() => handleConnect("coinbase")} className="flex justify-between items-center w-full">
-            <span>Coinbase Wallet</span>
-            <img src="/placeholder.svg?height=24&width=24" alt="Coinbase" className="h-6 w-6" />
-          </Button>
+          <span className="text-sm text-gray-500 truncate max-w-[150px]">
+            {walletAddress}
+          </span>
         </div>
-      </DialogContent>
-    </Dialog>
+      )}
+    </div>
   )
 }
