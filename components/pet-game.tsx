@@ -98,10 +98,10 @@ export default function PetGame() {
   }
 
   const playWithPet = async () => {
-    if (!contract || !pets || pets.length === 0) return;
+    if (!writeContract || !pets || pets.length === 0) return;
     try {
       setLoading(true);
-      const tx = await contract.playWithPet(pets[0]); // Play with the first pet
+      const tx = await writeContract.playWithPet(pets[0]); // Play with the first pet
       await tx.wait();
       await fetchPets(); // Refresh pet stats
     } catch (err: any) {
