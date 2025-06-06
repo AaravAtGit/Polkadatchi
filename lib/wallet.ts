@@ -24,24 +24,31 @@ export const connectMetaMask = async () => {
       method: 'eth_requestAccounts',
     });
 
-    // Add Westend network if not already added
-    try {
-      await window.ethereum.request({
-        method: 'wallet_addEthereumChain',
-        params: [westendChain],
-      });
-    } catch (addError) {
-      console.log('Network might already be added');
-    }
-
-    // Switch to Westend network
-    try {
-      await window.ethereum.request({
-        method: 'wallet_switchEthereumChain',
-        params: [{ chainId: westendChain.chainId }],
-      });
-    } catch (switchError) {
-      console.error('Error switching network:', switchError);
+    // Check current chain ID
+    const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+    
+    // Only switch network if we're not already on Westend
+    if (chainId !== westendChain.chainId) {
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: westendChain.chainId }],
+        });
+      } catch (switchError: any) {
+        // If the network doesn't exist, add it
+        if (switchError.code === 4902) {
+          try {
+            await window.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [westendChain],
+            });
+          } catch (addError) {
+            throw new Error('Failed to add Westend network to MetaMask');
+          }
+        } else {
+          throw new Error('Failed to switch to Westend network');
+        }
+      }
     }
 
     // Create ethers provider and signer

@@ -1,8 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
+import { useWeb3 } from "@/components/providers/web3-provider"
+import { useContract } from "@/hooks/use-contract"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Heart, UtensilsCrossed, Calendar, Clock, Trophy } from "lucide-react"
@@ -20,50 +22,94 @@ interface PetStats {
 }
 
 export default function PetGame() {
-  const [connected, setConnected] = useState(false)
-  const [walletAddress, setWalletAddress] = useState("")
+  const { address, isConnected } = useWeb3();
+  const { getPetsByOwner, contract, writeContract } = useContract();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [petStats, setPetStats] = useState<PetStats>({
-    name: "Pixel",
-    happiness: 70,
-    hunger: 40,
-    birthdate: "2023-05-15",
-    lastInteraction: "2023-06-05 14:30",
-    level: 5,
+    name: "",
+    happiness: 0,
+    hunger: 0,
+    birthdate: "",
+    lastInteraction: "",
+    level: 0,
     hasNFT: false,
-  })
+  });
+  const [pets, setPets] = useState<string[]>([]);
 
-  // Simulate wallet connection
+  const fetchPets = async () => {
+    if (!isConnected || !address || !contract) return;
+    
+    try {
+      setLoading(true);
+      setError(null);
+      const petIds = await getPetsByOwner(address);
+      setPets(petIds);        if (petIds && petIds.length > 0) {
+          const firstPetId = petIds[0];
+          // Use getPetStatsView instead of getPetStats to avoid transaction signing
+          const petStats = await contract.getPetStatsView(firstPetId);
+          setPetStats({
+          name: petStats.name,
+          happiness: petStats.happiness.toNumber(),
+          hunger: petStats.hunger.toNumber(),
+          birthdate: new Date(petStats.birthTime.toNumber() * 1000).toLocaleDateString(),
+          lastInteraction: new Date(petStats.lastUpdate.toNumber() * 1000).toLocaleString(),
+          level: 1, // You can add level logic if needed
+          hasNFT: true,
+        });
+      }
+    } catch (err: any) {
+      console.error('Error fetching pets:', err);
+      setError(err.message || 'Failed to fetch pets');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    // Only fetch if we have a connection and haven't loaded pets yet
+    if (isConnected && address && contract && pets.length === 0) {
+      fetchPets();
+    }
+  }, [isConnected, address, contract]);
+
   const handleConnect = (address: string) => {
-    setConnected(true)
-    setWalletAddress(address)
-
-    // Simulate NFT detection
-    setTimeout(() => {
-      setPetStats((prev) => ({
-        ...prev,
-        hasNFT: true,
-        name: "CryptoPet #1337",
-      }))
-    }, 1000)
+    // The wallet connection is now handled by useWeb3
+    // We just need to fetch pets when connected
+    if (address && contract) {
+      fetchPets()
+    }
   }
 
   // Pet interaction functions
-  const feedPet = () => {
-    setPetStats((prev) => ({
-      ...prev,
-      hunger: Math.min(100, prev.hunger + 20),
-      happiness: Math.min(100, prev.happiness + 5),
-      lastInteraction: new Date().toLocaleString(),
-    }))
+  const feedPet = async () => {
+    if (!contract || !pets || pets.length === 0) return;
+    try {
+      setLoading(true);
+      const tx = await writeContract?.feedPet(pets[0]); // Feed the first pet
+      await tx.wait();
+      await fetchPets(); // Refresh pet stats
+    } catch (err: any) {
+      console.error('Error feeding pet:', err);
+      setError(err.message || 'Failed to feed pet');
+    } finally {
+      setLoading(false);
+    }
   }
 
-  const playWithPet = () => {
-    setPetStats((prev) => ({
-      ...prev,
-      happiness: Math.min(100, prev.happiness + 20),
-      hunger: Math.max(0, prev.hunger - 10),
-      lastInteraction: new Date().toLocaleString(),
-    }))
+  const playWithPet = async () => {
+    if (!contract || !pets || pets.length === 0) return;
+    try {
+      setLoading(true);
+      const tx = await contract.playWithPet(pets[0]); // Play with the first pet
+      await tx.wait();
+      await fetchPets(); // Refresh pet stats
+    } catch (err: any) {
+      console.error('Error playing with pet:', err);
+      setError(err.message || 'Failed to play with pet');
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -71,14 +117,14 @@ export default function PetGame() {
       <CardHeader className="bg-gradient-to-r from-violet-400 to-fuchsia-400 p-4">
         <div className="flex justify-between items-center">
           <CardTitle className="text-white text-xl font-pixel">CryptoPet</CardTitle>
-          <WalletConnect onConnect={handleConnect} connected={connected} address={walletAddress} />
+          <WalletConnect />
         </div>
       </CardHeader>
 
       <CardContent className="p-0">
         <PetDisplay hasNFT={petStats.hasNFT} happiness={petStats.happiness} />
 
-        {connected ? (
+        {isConnected ? (
           <div className="p-4">
             <div className="mb-4 text-center">
               <h2 className="text-2xl font-bold text-purple-800">{petStats.name}</h2>
@@ -161,7 +207,13 @@ export default function PetGame() {
           </div>
         ) : (
           <div className="p-8 text-center">
-            <p className="text-gray-500 mb-4">Connect your wallet to see your CryptoPet</p>
+            {loading ? (
+              <p>Loading your pets...</p>
+            ) : error ? (
+              <p className="text-red-500">{error}</p>
+            ) : (
+              <p className="text-gray-500 mb-4">Connect your wallet to see your CryptoPet</p>
+            )}
           </div>
         )}
       </CardContent>
