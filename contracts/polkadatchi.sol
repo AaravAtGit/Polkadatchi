@@ -349,7 +349,7 @@ contract TamagotchiPet is ERC721, Ownable {
         }
         
         // Return baseURI + tokenId.json
-        return string(abi.encodePacked(baseURI, _toString(tokenId), ".json"));
+        return baseURI;
     }
     
     /**

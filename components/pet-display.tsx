@@ -9,10 +9,31 @@ interface PetDisplayProps {
   hasNFT: boolean
   happiness: number
   imageUri?: string
+  petType?: number
 }
 
-export default function PetDisplay({ hasNFT, happiness, imageUri }: PetDisplayProps) {
+const PET_IMAGES = {
+  FIRE: "https://indigo-immense-barnacle-223.mypinata.cloud/ipfs/bafybeifyqolo6ybaq7qy4hliyldzon77uvtaujbroynpjvcntgfojn53zm",
+  WATER: "https://indigo-immense-barnacle-223.mypinata.cloud/ipfs/bafkreie6kxam54tzfquax3p2jotx7qwtolqtgbewznth4fdt4kf4dkt3he",
+  GRASS: "https://indigo-immense-barnacle-223.mypinata.cloud/ipfs/bafybeidobitqnzxgj7czbg72ep2kwq2tjqvyzrggzbpe575eevsryfahk4"
+}
+
+export default function PetDisplay({ hasNFT, happiness, imageUri, petType = 0 }: PetDisplayProps) {
   const [bounce, setBounce] = useState(false)
+
+  // Get the correct IPFS image based on pet type
+  const getIPFSImage = () => {
+    switch (petType) {
+      case 0:
+        return PET_IMAGES.FIRE
+      case 1:
+        return PET_IMAGES.WATER
+      case 2:
+        return PET_IMAGES.GRASS
+      default:
+        return PET_IMAGES.FIRE
+    }
+  }
 
   // Trigger animation periodically
   useEffect(() => {
@@ -63,28 +84,32 @@ export default function PetDisplay({ hasNFT, happiness, imageUri }: PetDisplayPr
             }}
             className="relative"
           >
-            <div className="relative z-10 w-32 h-32 rounded-lg overflow-hidden bg-white/10 backdrop-blur-sm p-2 border-2 border-white/20">
-              {imageUri ? (
-                <Image
-                  src={imageUri}
-                  alt="Pet NFT"
-                  width={128}
-                  height={128}
-                  className="w-full h-full object-cover rounded-lg"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-6xl">
-                  🐾
-                </div>
-              )}
+            <div className="relative z-10 w-48 h-48 rounded-lg overflow-hidden bg-white/10 backdrop-blur-sm p-2 border-2 border-white/20">
+              <Image
+                src={getIPFSImage()}
+                alt="Pet NFT"
+                width={192}
+                height={192}
+                className="w-full h-full object-cover rounded-lg transform hover:scale-110 transition-transform duration-300"
+                unoptimized
+              />
               
               {/* Happiness indicator */}
               <motion.div
-                className="absolute bottom-2 right-2 bg-white/90 rounded-full px-2 py-1 text-xs font-bold"
+                className="absolute bottom-2 right-2 bg-black/50 backdrop-blur-sm rounded-full px-3 py-1.5 text-sm font-bold text-white"
                 animate={{ scale: [1, 1.2, 1] }}
                 transition={{ duration: 2, repeat: Infinity }}
               >
                 {happiness}% ❤️
+              </motion.div>
+
+              {/* Type badge */}
+              <motion.div
+                className="absolute top-2 left-2 bg-black/50 backdrop-blur-sm rounded-full px-3 py-1.5 text-sm font-bold text-white"
+                animate={{ opacity: [0.8, 1, 0.8] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
+                {petType === 0 ? '🔥' : petType === 1 ? '💧' : '🌿'}
               </motion.div>
             </div>
             

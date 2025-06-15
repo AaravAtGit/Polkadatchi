@@ -23,6 +23,8 @@ interface PetStats {
   level: number
   hasNFT: boolean
   imageUri?: string
+  petType: number
+  xp: number
 }
 
 export default function PetGame() {
@@ -57,7 +59,7 @@ export default function PetGame() {
         const petsData = await Promise.all(
           petIds.map(async (id: any) => {
             const petStats = await contract.getPetStatsView(id);
-            const uri = await contract.tokenURI(id);
+            const petType = await contract.getPetType(id);
             return {
               id: id.toString(),
               name: petStats.name,
@@ -65,9 +67,11 @@ export default function PetGame() {
               hunger: petStats.hunger.toNumber(),
               birthdate: new Date(petStats.birthTime.toNumber() * 1000).toLocaleDateString(),
               lastInteraction: new Date(petStats.lastUpdate.toNumber() * 1000).toLocaleString(),
-              level: 1,
+              level: petStats.level.toNumber(),
               hasNFT: true,
-              imageUri: uri
+              imageUri: "",
+              petType: petType,
+              xp: petStats.xp.toNumber()
             };
           })
         );
@@ -103,6 +107,21 @@ export default function PetGame() {
     } catch (err: any) {
       console.error('Error feeding pet:', err);
       setError(err.message || 'Failed to feed pet');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const trainPet = async () => {
+    if (!writeContract || !selectedPetId) return;
+    try {
+      setLoading(true);
+      const tx = await writeContract.trainPet(selectedPetId);
+      await tx.wait();
+      await fetchPets();
+    } catch (err: any) {
+      console.error('Error training pet:', err);
+      setError(err.message || 'Failed to train pet');
     } finally {
       setLoading(false);
     }
@@ -145,7 +164,7 @@ export default function PetGame() {
         <PetDisplay 
           hasNFT={selectedPet.hasNFT} 
           happiness={selectedPet.happiness}
-          imageUri={selectedPet.imageUri}
+          petType={selectedPet.petType}
         />
 
         {isConnected ? (
@@ -221,9 +240,22 @@ export default function PetGame() {
                     >
                       <div className="flex items-center space-x-2">
                         <Trophy className="h-5 w-5 text-yellow-400" />
-                        <div>
-                          <div className="text-xs text-white/70">Level</div>
-                          <div className="text-sm font-bold text-white">{selectedPet.level}</div>
+                        <div className="flex-1">
+                          <div className="text-xs text-white/70">Level {selectedPet.level}</div>
+                          <div className="w-full bg-white/10 h-2 rounded-full mt-1 overflow-hidden">
+                            <motion.div
+                              className="h-full bg-gradient-to-r from-yellow-400 to-orange-400"
+                              style={{ 
+                                width: `${(selectedPet.xp % 100)}%`
+                              }}
+                              initial={{ width: 0 }}
+                              animate={{ width: `${(selectedPet.xp % 100)}%` }}
+                              transition={{ duration: 1 }}
+                            />
+                          </div>
+                          <div className="text-[10px] text-white/50 mt-1">
+                            XP: {selectedPet.xp % 100}/100
+                          </div>
                         </div>
                       </div>
                     </motion.div>
@@ -260,7 +292,7 @@ export default function PetGame() {
               </TabsContent>
 
               <TabsContent value="actions" className="pt-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <motion.div
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
@@ -297,6 +329,26 @@ export default function PetGame() {
                       >
                         <Heart className="h-6 w-6 mr-2" />
                         <span className="text-lg">Play</span>
+                      </motion.div>
+                    </Button>
+                  </motion.div>
+
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Button
+                      onClick={trainPet}
+                      className="w-full h-16 bg-gradient-to-r from-purple-400 to-pink-400 hover:from-purple-500 hover:to-pink-500 border-2 border-white/10 shadow-lg"
+                      disabled={loading}
+                    >
+                      <motion.div
+                        animate={{ scale: [1, 1.2, 1] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                        className="flex items-center"
+                      >
+                        <Trophy className="h-6 w-6 mr-2" />
+                        <span className="text-lg">Train</span>
                       </motion.div>
                     </Button>
                   </motion.div>
