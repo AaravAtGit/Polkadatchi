@@ -11,9 +11,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Heart, UtensilsCrossed, Calendar, Clock, Trophy } from "lucide-react"
 import WalletConnect from "@/components/wallet-connect"
 import PetDisplay from "@/components/pet-display"
+import PetBattle from "@/components/pet-battle"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
-interface PetStats {
+export interface PetStats {
   id: string
   name: string
   happiness: number
@@ -45,6 +46,9 @@ export default function PetGame() {
     lastInteraction: "",
     level: 0,
     hasNFT: false,
+    imageUri: "",
+    petType: 0,
+    xp: 0
   };
 
   const fetchPets = async () => {
@@ -368,15 +372,14 @@ export default function PetGame() {
           </div>
         )}
       </CardContent>
+      <CardFooter className="p-4 flex flex-col gap-4">
+        <div className="grid grid-cols-1 gap-1">
 
-      <CardFooter className="bg-gradient-to-r from-indigo-900/50 to-purple-900/50 p-4 text-center text-xs text-white/70 border-t border-white/10">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 1 }}
-        >
-          Polkadatchi v1.0 - Your pet lives on the blockchain ✨
-        </motion.div>
+          <PetBattle playerPet={selectedPet} />
+        </div>
+        {error && (
+          <div className="text-red-500 text-sm mt-2">{error}</div>
+        )}
       </CardFooter>
     </Card>
   )
