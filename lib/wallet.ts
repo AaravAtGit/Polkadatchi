@@ -1,16 +1,16 @@
 // lib/wallet.ts
 import { ethers } from 'ethers';
 
-export const westendChain = {
-  chainId: '0x190f1b45', // 420420421 in hex
-  chainName: 'Westend',
+export const sepoliaChain = {
+  chainId: '0xaa36a7', // 11155111 in hex
+  chainName: 'Sepolia',
   nativeCurrency: {
-    name: 'Westend',
-    symbol: 'WND',
+    name: 'Sepolia ETH',
+    symbol: 'ETH',
     decimals: 18,
   },
-  rpcUrls: ['https://westend-asset-hub-eth-rpc.polkadot.io'],
-  blockExplorerUrls: ['https://blockscout-asset-hub.parity-chains-scw.parity.io'],
+  rpcUrls: ['https://sepolia.infura.io/v3/860d2e1cb0e0456f8e63301e343d6517'],
+  blockExplorerUrls: ['https://sepolia.etherscan.io'],
 };
 
 export const connectMetaMask = async () => {
@@ -27,12 +27,12 @@ export const connectMetaMask = async () => {
     // Check current chain ID
     const chainId = await window.ethereum.request({ method: 'eth_chainId' });
     
-    // Only switch network if we're not already on Westend
-    if (chainId !== westendChain.chainId) {
+    // Only switch network if we're not already on Sepolia
+    if (chainId !== sepoliaChain.chainId) {
       try {
         await window.ethereum.request({
           method: 'wallet_switchEthereumChain',
-          params: [{ chainId: westendChain.chainId }],
+          params: [{ chainId: sepoliaChain.chainId }],
         });
       } catch (switchError: any) {
         // If the network doesn't exist, add it
@@ -40,13 +40,13 @@ export const connectMetaMask = async () => {
           try {
             await window.ethereum.request({
               method: 'wallet_addEthereumChain',
-              params: [westendChain],
+              params: [sepoliaChain],
             });
           } catch (addError) {
-            throw new Error('Failed to add Westend network to MetaMask');
+            throw new Error('Failed to add Sepolia network to MetaMask');
           }
         } else {
-          throw new Error('Failed to switch to Westend network');
+          throw new Error('Failed to switch to Sepolia network');
         }
       }
     }

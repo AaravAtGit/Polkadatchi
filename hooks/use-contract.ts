@@ -2,11 +2,13 @@ import { ethers } from 'ethers';
 import { useEffect, useState } from 'react';
 import { useWeb3 } from '../components/providers/web3-provider';
 import contractABI from '../abi.json';
+import { sepoliaChain } from '../lib/wallet';
 
-const CONTRACT_ADDRESS = '0x802988D2A33F3e53bc1485e4C9555528499D66D1';
+const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '0x282f335096474C32211544Ee21CC49e52CA4F3F4';
+const FALLBACK_RPC = process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL || sepoliaChain.rpcUrls[0];
 
 export function useContract() {
-  const { provider, signer, isConnected } = useWeb3();
+  const { provider: web3Provider, signer, isConnected } = useWeb3();
   const [contract, setContract] = useState<ethers.Contract | null>(null);
   const [readContract, setReadContract] = useState<ethers.Contract | null>(null);
 
@@ -14,8 +16,9 @@ export function useContract() {
     let mounted = true;
 
     const initContract = async () => {
-      if (!provider) return;
-
+      // Use web3Provider if available, otherwise use fallback RPC
+      const provider = web3Provider || new ethers.providers.JsonRpcProvider(FALLBACK_RPC);
+      
       try {
         // Initialize read-only contract with provider
         const readOnlyContract = new ethers.Contract(CONTRACT_ADDRESS, contractABI, provider);
@@ -44,7 +47,7 @@ export function useContract() {
     return () => {
       mounted = false;
     };
-  }, [provider, signer, isConnected]);
+  }, [web3Provider, signer, isConnected]);
 
   const getPetsByOwner = async (address: string) => {
     if (!readContract) throw new Error('Contract not initialized');
@@ -56,12 +59,23 @@ export function useContract() {
       console.error('Error getting pets:', error);
       // Check if it's a network error
       if (error.code === 'NETWORK_ERROR') {
-        throw new Error('Network error: Please make sure you are connected to Westend network');
+        throw new Error('Network error: Please make sure you are connected to Sepolia network');
       }
       // Check if contract doesn't exist
       if (error.code === 'CALL_EXCEPTION') {
-        throw new Error('Contract error: Please make sure you are on the correct network');
+        throw new Error('Contract error: Please make sure you are on the Sepolia network');
       }
+      throw error;
+    }
+  };
+
+  const getTokenURI = async (tokenId: number) => {
+    if (!readContract) throw new Error('Contract not initialized');
+    try {
+      const uri = await readContract.tokenURI(tokenId);
+      return uri;
+    } catch (error) {
+      console.error('Error getting token URI:', error);
       throw error;
     }
   };
@@ -91,6 +105,7 @@ export function useContract() {
     contract: readContract, // Use read contract as default for view functions
     writeContract: contract, // Use this for state-modifying functions
     getPetsByOwner,
-    mintPet
+    mintPet,
+    getTokenURI
   };
 }
