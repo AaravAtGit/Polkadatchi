@@ -9,6 +9,28 @@ import { Input } from "@/components/ui/input"
 import { Progress } from "@/components/ui/progress"
 import { useContract } from "@/hooks/use-contract"
 import { PetStats } from "@/components/pet-game"
+import Image from "next/image"
+
+// IPFS image URLs for different pet types
+const PET_IMAGES = {
+  FIRE: "https://indigo-immense-barnacle-223.mypinata.cloud/ipfs/bafybeifyqolo6ybaq7qy4hliyldzon77uvtaujbroynpjvcntgfojn53zm",
+  WATER: "https://indigo-immense-barnacle-223.mypinata.cloud/ipfs/bafkreie6kxam54tzfquax3p2jotx7qwtolqtgbewznth4fdt4kf4dkt3he",
+  GRASS: "https://indigo-immense-barnacle-223.mypinata.cloud/ipfs/bafybeidobitqnzxgj7czbg72ep2kwq2tjqvyzrggzbpe575eevsryfahk4"
+}
+
+// Helper function to get image URL based on pet type
+const getPetImage = (petType: number) => {
+  switch (petType) {
+    case 0:
+      return PET_IMAGES.FIRE
+    case 1:
+      return PET_IMAGES.WATER
+    case 2:
+      return PET_IMAGES.GRASS
+    default:
+      return PET_IMAGES.FIRE
+  }
+}
 
 interface Move {
   name: string;
@@ -232,18 +254,35 @@ export default function PetBattle({ playerPet }: PetBattleProps) {
               {/* Player Pet */}
               <Card className="p-4">
                 <h3 className="font-bold mb-2">{playerBattlePet?.name}</h3>
+                <div className="relative w-full h-48 mb-4 rounded-lg overflow-hidden bg-white/10 backdrop-blur-sm">
+                  <Image
+                    src={getPetImage(playerBattlePet?.petType || 0)}
+                    alt={`${playerBattlePet?.name}'s image`}
+                    width={192}
+                    height={192}
+                    className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
+                    unoptimized
+                  />
+                </div>
                 <Progress value={(playerBattlePet?.hp || 0) * 2} className="mb-4" />
                 <div className="grid grid-cols-2 gap-2">
                   {playerBattlePet?.moves.map((move, index) => (
-                    <Button
+                    <motion.div
                       key={index}
-                      onClick={() => executeMove(move)}
-                      disabled={currentTurn !== "player" || gameOver}
-                      className="relative overflow-hidden"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
                     >
-                      {move.name}
-                      <span className="text-xs block opacity-75">{move.type}</span>
-                    </Button>
+                      <Button
+                        onClick={() => executeMove(move)}
+                        disabled={currentTurn !== "player" || gameOver}
+                        className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600"
+                      >
+                        <div>
+                          {move.name}
+                          <span className="text-xs block opacity-75">{move.type}</span>
+                        </div>
+                      </Button>
+                    </motion.div>
                   ))}
                 </div>
               </Card>
@@ -251,7 +290,22 @@ export default function PetBattle({ playerPet }: PetBattleProps) {
               {/* Opponent Pet */}
               <Card className="p-4">
                 <h3 className="font-bold mb-2">{opponentBattlePet?.name}</h3>
+                <div className="relative w-full h-48 mb-4 rounded-lg overflow-hidden bg-white/10 backdrop-blur-sm">
+                  <Image
+                    src={getPetImage(opponentBattlePet?.petType || 0)}
+                    alt={`${opponentBattlePet?.name}'s image`}
+                    width={192}
+                    height={192}
+                    className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
+                    unoptimized
+                  />
+                </div>
                 <Progress value={(opponentBattlePet?.hp || 0) * 2} className="mb-4" />
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="col-span-2 text-center text-sm text-gray-500">
+                    Waiting for their move...
+                  </div>
+                </div>
               </Card>
             </div>
 
