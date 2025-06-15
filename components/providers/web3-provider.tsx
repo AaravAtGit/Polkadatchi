@@ -109,7 +109,7 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
       setState(prev => ({
         ...prev,
         isConnecting: false,
-        error: new Error(error?.message || 'Failed to connect to Sepolia network'),
+        error: new Error(error?.message || 'Failed to Connect to AssetHub network'),
       }));
     }
   };

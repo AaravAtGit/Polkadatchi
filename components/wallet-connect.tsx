@@ -48,7 +48,7 @@ export default function WalletConnect({ onConnect, connected, address }: WalletC
           className="flex items-center gap-2"
         >
           <AlertCircle className="h-4 w-4" />
-          Connect to Sepolia
+          Connect to AssetHub
         </Button>
       ) : (
         <div className="flex items-center gap-2">
